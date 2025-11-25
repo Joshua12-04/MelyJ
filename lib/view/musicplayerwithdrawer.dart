@@ -1,0 +1,435 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_slider_drawer/flutter_slider_drawer.dart';
+import '../bloc/player_load_states.dart';
+import '../bloc/playerbloc.dart';
+import '../bloc/player_load_event.dart';
+import '../bloc/player_state.dart';
+import '../model/audio_item.dart';
+
+class MusicPlayerWithDrawer extends StatefulWidget {
+  final List<AudioItem> canciones;
+  final Widget mainScreen;
+  final VoidCallback onSettingsTap;
+
+  const MusicPlayerWithDrawer({
+    Key? key,
+    required this.canciones,
+    required this.mainScreen,
+    required this.onSettingsTap,
+  }) : super(key: key);
+
+  @override
+  State<MusicPlayerWithDrawer> createState() => MusicPlayerWithDrawerState();
+}
+
+class MusicPlayerWithDrawerState extends State<MusicPlayerWithDrawer> {
+  final GlobalKey<SliderDrawerState> _sliderDrawerKey =
+      GlobalKey<SliderDrawerState>();
+
+  void openDrawer() {
+    _sliderDrawerKey.currentState?.openSlider();
+  }
+
+  void closeDrawer() {
+    _sliderDrawerKey.currentState?.closeSlider();
+  }
+
+  void toggleDrawer() {
+    if (_sliderDrawerKey.currentState?.isDrawerOpen ?? false) {
+      closeDrawer();
+    } else {
+      openDrawer();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SliderDrawer(
+      key: _sliderDrawerKey,
+      appBar: SliderAppBar(
+        config: SliderAppBarConfig(
+          backgroundColor: Colors.white,
+          drawerIconSize: 60,
+          title: const Text(
+            'MayVin Music',
+            style: TextStyle(
+              fontSize: 22,
+              fontFamily: "DMSerif",
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          trailing: IconButton(
+            icon: const Icon(Icons.settings, color: Colors.black87),
+            onPressed: () {
+              closeDrawer();
+              widget.onSettingsTap();
+            },
+          ),
+        ),
+      ),
+      slideDirection: SlideDirection.leftToRight,
+      sliderOpenSize: 280,
+      slider: _DrawerContent(
+        canciones: widget.canciones,
+        onSettingsTap: () {
+          closeDrawer();
+          widget.onSettingsTap();
+        },
+      ),
+      child: widget.mainScreen,
+    );
+  }
+}
+
+class _DrawerContent extends StatefulWidget {
+  final List<AudioItem> canciones;
+  final VoidCallback onSettingsTap;
+
+  const _DrawerContent({required this.canciones, required this.onSettingsTap});
+
+  @override
+  State<_DrawerContent> createState() => _DrawerContentState();
+}
+
+class _DrawerContentState extends State<_DrawerContent> {
+  late PageController _pageController;
+  bool _isManualChange = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final bloc = context.read<PlayerBloc>();
+    final initialIndex = bloc.state is PlayingState
+        ? (bloc.state as PlayingState).currentIndex
+        : 0;
+    _pageController = PageController(initialPage: initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onPageChanged(int index) {
+    _isManualChange = true;
+    final bloc = context.read<PlayerBloc>();
+    final currentState = bloc.state;
+
+    if (currentState is PlayingState && index != currentState.currentIndex) {
+      bloc.add(PlayerLoadEvent(index));
+    }
+
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) _isManualChange = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xfff3d4ba),
+      child: SafeArea(
+        child: Column(
+          children: [
+            _DrawerHeader(),
+            const Divider(height: 1, thickness: 1),
+            _SettingsButton(onTap: widget.onSettingsTap),
+            const Spacer(),
+            _AlbumArtCarousel(
+              canciones: widget.canciones,
+              pageController: _pageController,
+              onPageChanged: _onPageChanged,
+              isManualChange: _isManualChange,
+            ),
+            _PlaybackControls(canciones: widget.canciones),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerHeader extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 160,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xffffc79c),
+            const Color(0xffff0000).withOpacity(0.8),
+            const Color(0xfff3d4ba),
+          ],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            const Text(
+              'MayVin Music',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+                fontFamily: "DMSerif",
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tu música, tu estilo',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.black87.withOpacity(0.7),
+                fontWeight: FontWeight.w300,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _SettingsButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.settings, color: Color(0xffff0000), size: 24),
+      title: const Text(
+        'Settings',
+        style: TextStyle(
+          color: Colors.black87,
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+    );
+  }
+}
+
+class _AlbumArtCarousel extends StatelessWidget {
+  final List<AudioItem> canciones;
+  final PageController pageController;
+  final Function(int) onPageChanged;
+  final bool isManualChange;
+
+  const _AlbumArtCarousel({
+    required this.canciones,
+    required this.pageController,
+    required this.onPageChanged,
+    required this.isManualChange,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<PlayerBloc, PlayState>(
+      listener: (context, state) {
+        if (state is PlayingState &&
+            !isManualChange &&
+            pageController.hasClients) {
+          pageController.animateToPage(
+            state.currentIndex,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      },
+      child: SizedBox(
+        height: 200,
+        child: PageView.builder(
+          controller: pageController,
+          itemCount: canciones.length,
+          onPageChanged: onPageChanged,
+          itemBuilder: (context, index) => Container(
+            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(50),
+              child: Image.asset(canciones[index].imagePath, fit: BoxFit.cover),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlaybackControls extends StatelessWidget {
+  final List<AudioItem> canciones;
+
+  const _PlaybackControls({required this.canciones});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<PlayerBloc, PlayState>(
+      builder: (context, state) {
+        AudioItem? currentSong;
+        bool isPlaying = false;
+
+        if (state is PlayingState) {
+          final index = state.currentIndex;
+          if (index >= 0 && index < canciones.length) {
+            currentSong = canciones[index];
+            isPlaying = state.playing;
+          }
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xffffc79c).withOpacity(0.3),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (currentSong != null) ...[
+                _SongInfo(song: currentSong),
+                const SizedBox(height: 16),
+              ],
+              _ControlButtons(isPlaying: isPlaying),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SongInfo extends StatelessWidget {
+  final AudioItem song;
+
+  const _SongInfo({required this.song});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xffff0000).withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            song.title,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            song.artist,
+            style: TextStyle(
+              color: Colors.black87.withOpacity(0.7),
+              fontSize: 14,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ControlButtons extends StatelessWidget {
+  final bool isPlaying;
+
+  const _ControlButtons({required this.isPlaying});
+
+  @override
+  Widget build(BuildContext context) {
+    final bloc = context.read<PlayerBloc>();
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _ControlButton(
+          icon: Icons.skip_previous,
+          onPressed: () => bloc.add(PrevEvent()),
+        ),
+        _ControlButton(
+          icon: isPlaying ? Icons.pause : Icons.play_arrow,
+          onPressed: () => bloc.add(isPlaying ? PauseEvent() : PlayEvent()),
+          isPrimary: true,
+        ),
+        _ControlButton(
+          icon: Icons.skip_next,
+          onPressed: () => bloc.add(NextEvent()),
+        ),
+      ],
+    );
+  }
+}
+
+class _ControlButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+  final bool isPrimary;
+
+  const _ControlButton({
+    required this.icon,
+    required this.onPressed,
+    this.isPrimary = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(30),
+      child: Container(
+        width: isPrimary ? 64 : 56,
+        height: isPrimary ? 64 : 56,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isPrimary
+              ? const Color(0xffff0000).withOpacity(0.2)
+              : Colors.white.withOpacity(0.6),
+          border: Border.all(
+            color: isPrimary
+                ? const Color(0xffff0000).withOpacity(0.6)
+                : Colors.black.withOpacity(0.1),
+            width: isPrimary ? 2 : 1,
+          ),
+        ),
+        child: Icon(
+          icon,
+          color: isPrimary ? const Color(0xffff0000) : Colors.black87,
+          size: isPrimary ? 32 : 28,
+        ),
+      ),
+    );
+  }
+}
