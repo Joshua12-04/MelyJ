@@ -106,9 +106,9 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 assets:
-  - assets/
-  - assets/music/
-  - assets/images/
+  - asset/images/
+  - asset/music/
+
 
 fonts:
     - family: DMSerif
@@ -119,17 +119,17 @@ flutter_native_splash:
   android: true
   android_gravity: fill
   web: true
-  color: "#fcc79c"
-  image: assets/images/splash_full.png
+  color: "#fff3c1"
+  image: assets/images/melyjsplash_full.png
   fullscreen: true
 
   branding_bottom_padding_ios: 35
 
   android_12:
-    image: assets/images/splash_full.png
+    image: assets/images/melyjsplash_full.png
     fullscreen: true
 
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: "assets/images/iconm.png"
+  image_path: "assets/images/melyjicon.jpg"

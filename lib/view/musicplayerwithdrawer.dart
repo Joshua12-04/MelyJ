@@ -49,19 +49,20 @@ class MusicPlayerWithDrawerState extends State<MusicPlayerWithDrawer> {
       key: _sliderDrawerKey,
       appBar: SliderAppBar(
         config: SliderAppBarConfig(
-          backgroundColor: Colors.white,
-          drawerIconSize: 60,
+          drawerIconColor: Colors.black,
+          backgroundColor: Color(0xffffe082),
+          drawerIconSize: 40,
           title: const Text(
-            'MayVin Music',
+            'MelyJ - 🎧',
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 24,
               fontFamily: "DMSerif",
               fontWeight: FontWeight.bold,
               color: Colors.black,
             ),
           ),
           trailing: IconButton(
-            icon: const Icon(Icons.settings, color: Colors.black87),
+            icon: const Icon(Icons.settings, color: Colors.black),
             onPressed: () {
               closeDrawer();
               widget.onSettingsTap();
@@ -130,7 +131,7 @@ class _DrawerContentState extends State<_DrawerContent> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xfff3d4ba),
+      color: const Color(0xFFFFE082),
       child: SafeArea(
         child: Column(
           children: [
@@ -162,9 +163,9 @@ class _DrawerHeader extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xffffc79c),
-            const Color(0xffff0000).withOpacity(0.8),
-            const Color(0xfff3d4ba),
+            const Color(0xFFE7E23B),
+            const Color(0xFFFFE082).withOpacity(0.8),
+            const Color(0xFFE4EFB3),
           ],
         ),
       ),
@@ -175,18 +176,18 @@ class _DrawerHeader extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             const Text(
-              'MayVin Music',
+              'MelyJ - Music',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: Colors.black,
                 fontFamily: "DMSerif",
                 letterSpacing: 1.2,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Tu música, tu estilo',
+              'Unas hambuerguesitas o qué???',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.black87.withOpacity(0.7),
@@ -208,11 +209,11 @@ class _SettingsButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: const Icon(Icons.settings, color: Color(0xffff0000), size: 24),
+      leading: const Icon(Icons.settings, color: Color(0xff000000), size: 24),
       title: const Text(
-        'Settings',
+        'Ajustes',
         style: TextStyle(
-          color: Colors.black87,
+          color: Colors.black,
           fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
@@ -291,10 +292,10 @@ class _PlaybackControls extends StatelessWidget {
 
         return Container(
           decoration: BoxDecoration(
-            color: const Color(0xffffc79c).withOpacity(0.3),
+            color: const Color(0xFFFFE082).withOpacity(0.3),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.white.withOpacity(0.1),
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),
@@ -330,7 +331,7 @@ class _SongInfo extends StatelessWidget {
         color: Colors.white.withOpacity(0.7),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xffff0000).withOpacity(0.3),
+          color: const Color(0xffffe082).withOpacity(0.3),
           width: 1,
         ),
       ),
@@ -340,7 +341,7 @@ class _SongInfo extends StatelessWidget {
           Text(
             song.title,
             style: const TextStyle(
-              color: Colors.black87,
+              color: Colors.black,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -351,7 +352,7 @@ class _SongInfo extends StatelessWidget {
           Text(
             song.artist,
             style: TextStyle(
-              color: Colors.black87.withOpacity(0.7),
+              color: Colors.black.withOpacity(0.7),
               fontSize: 14,
             ),
             maxLines: 1,
@@ -415,18 +416,18 @@ class _ControlButton extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isPrimary
-              ? const Color(0xffff0000).withOpacity(0.2)
-              : Colors.white.withOpacity(0.6),
+              ? const Color(0xff000000).withOpacity(0.2)
+              : Colors.black.withOpacity(0.6),
           border: Border.all(
             color: isPrimary
-                ? const Color(0xffff0000).withOpacity(0.6)
-                : Colors.black.withOpacity(0.1),
+                ? const Color(0xff000000).withOpacity(0.6)
+                : Colors.black.withOpacity(0.4),
             width: isPrimary ? 2 : 1,
           ),
         ),
         child: Icon(
           icon,
-          color: isPrimary ? const Color(0xffff0000) : Colors.black87,
+          color: isPrimary ? const Color(0xFF000000) : Colors.black,
           size: isPrimary ? 32 : 28,
         ),
       ),

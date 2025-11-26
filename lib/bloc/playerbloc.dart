@@ -37,14 +37,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
       await audioPlayer.stop();
       final String assetPath = canciones[event.index].assetPath;
 
-      if (kIsWeb) {
-        final String fileName = assetPath.split('/').last;
-        final String url =
-            'https://joshua12-04.github.io/flutter-music-assets/music/$fileName';
-        await audioPlayer.setSourceUrl(url);
-      } else {
         await audioPlayer.setSourceAsset(assetPath);
-      }
 
       Duration? duracionObtenida;
       if (!kIsWeb) {
