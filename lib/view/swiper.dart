@@ -65,7 +65,7 @@ class _SwiperState extends State<Swiper> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(50),
                     child: Image.asset(
-                      widget.audioList[index].imagePath,
+                      widget.audioList[index].imagePath!,
                       fit: BoxFit.cover,
                     ),
                   ),

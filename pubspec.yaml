@@ -105,12 +105,14 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
-assets:
-  - asset/images/
-  - asset/music/
 
+  # Assets deben estar DENTRO de flutter: con 2 espacios de indentación
+  assets:
+    - assets/
+    - assets/images/
+    - assets/music/
 
-fonts:
+  fonts:
     - family: DMSerif
       fonts:
         - asset: assets/fonts/DMSerifDisplay-Regular.ttf
@@ -129,7 +131,7 @@ flutter_native_splash:
     image: assets/images/melyjsplash_full.png
     fullscreen: true
 
-flutter_launcher_icons:
+flutter_icons:
   android: true
   ios: false
   image_path: "assets/images/melyjicon.jpg"

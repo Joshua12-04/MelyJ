@@ -32,47 +32,52 @@ class _PlayerWrapperState extends State<PlayerWrapper> {
 
     canciones = [
       AudioItem(
-        "music/love.mp3",
-        "Love",
-        "Pelon",
-        "images/love_colored.jpg",
+        assetPath: "music/love.mp3",
+        title: "Love",
+        artist: "Pelon",
+        imagePath: "assets/images/love_colored.jpg", // ✅ Ya está bien
       ),
       AudioItem(
-        "music/misoledad.mp3",
-        "Mi Soledad",
-        "Los plebes del rancho de Ariel camacho",
-        "images/plebes.jpg",
+        assetPath: "music/misoledad.mp3",
+        title: "Mi Soledad",
+        artist: "Los plebes del rancho de Ariel camacho",
+        imagePath: "assets/images/plebes.jpg", // ✅ Agregado "assets/"
       ),
       AudioItem(
-        "music/thejazzpiano.mp3",
-        "Jazz Piano",
-        "Limon",
-        "images/thejazzpiano_colored.jpg",
-      ),
-      AudioItem("music/tutu.mp3", "TUTU", "Camilo", "asset/images/camilo.jpg"),
-      AudioItem(
-        "music/atravezdelvaso.mp3",
-        "A Travez del Vaso",
-        "Carin Leon",
-        "images/carin.jpg",
+        assetPath: "music/thejazzpiano.mp3",
+        title: "Jazz Piano",
+        artist: "Limon",
+        imagePath: "assets/images/thejazzpiano_colored.jpg", // ✅ Agregado "assets/"
       ),
       AudioItem(
-        "music/porquetequiero.mp3",
-        "Porque Te Quiero",
-        "Grupo Firme",
-        "images/grupofirme.jpg",
+        assetPath: "music/tutu.mp3",
+        title: "TUTU",
+        artist: "Camilo",
+        imagePath: "assets/images/camilo.jpg", // ✅ Agregado "assets/"
       ),
       AudioItem(
-        "music/allthat.mp3",
-        "All that",
-        "Joshua",
-        "images/allthat_colored.jpg",
+        assetPath: "music/atravezdelvaso.mp3",
+        title: "A Travez del Vaso",
+        artist: "Carin Leon",
+        imagePath: "assets/images/carin.jpg", // ✅ Agregado "assets/"
       ),
       AudioItem(
-        "music/indecision.mp3",
-        "Indecision",
-        "La Arrolladora Banda Limon",
-        "images/arrolladora.jpg",
+        assetPath: "music/porquetequiero.mp3",
+        title: "Porque Te Quiero",
+        artist: "Grupo Firme",
+        imagePath: "assets/images/grupofirme.jpg", // ✅ Agregado "assets/"
+      ),
+      AudioItem(
+        assetPath: "music/allthat.mp3",
+        title: "All that",
+        artist: "Joshua",
+        imagePath: "assets/images/allthat_colored.jpg", // ✅ Agregado "assets/"
+      ),
+      AudioItem(
+        assetPath: "music/indecision.mp3",
+        title: "Indecision",
+        artist: "La Arrolladora Banda Limon",
+        imagePath: "assets/images/arrolladora.jpg", // ✅ Agregado "assets/"
       ),
     ];
 

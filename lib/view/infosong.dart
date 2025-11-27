@@ -19,8 +19,8 @@ class Informationsongs extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<PlayerBloc, PlayState>(
       builder: (context, state) {
-        String name = "Sin título";
-        String artist = "Artista desconocido";
+        String? name = "Sin título";
+        String? artist = "Artista desconocido";
 
         if (state is PlayingState) {
           final currentIndex = state.currentIndex;
@@ -35,7 +35,7 @@ class Informationsongs extends StatelessWidget {
           child: Column(
             children: [
               Text(
-                name,
+                name!,
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 24,
@@ -47,7 +47,7 @@ class Informationsongs extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                artist,
+                artist!,
                 style: const TextStyle(
                   color: Colors.black54,
                   fontSize: 18,

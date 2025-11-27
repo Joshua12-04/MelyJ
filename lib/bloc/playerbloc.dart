@@ -7,14 +7,19 @@ import 'package:melyj/bloc/player_load_event.dart';
 import 'package:melyj/bloc/player_load_states.dart';
 import 'package:melyj/bloc/player_state.dart';
 import '../model/audio_item.dart';
+import '../model/databasehelper.dart';
 
 class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
-  final AudioPlayer audioPlayer;
-  final List<AudioItem> canciones;
+  final AudioPlayer? audioPlayer;
+  final List<AudioItem>? canciones;
   StreamSubscription? position, duration, estado;
+  final DatabaseHelper? dbhelper;
 
-  PlayerBloc({required this.audioPlayer, required this.canciones})
+  PlayerBloc({this.dbhelper, this.audioPlayer, this.canciones})
       : super(InitialState()) {
+    // Registrar y manipular la base de datos
+    on<CreateAudioItem>(crearCanciones);
+    on<ReadAudioItem>(leerCanciones);
     // Registrar todos los manejadores de eventos
     on<PlayerLoadEvent>(cargando);
     on<PlayEvent>(reproduciendo);
@@ -24,30 +29,28 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
     on<SeekEvent>(moviendo);
     on<PlayerSetVolumeEvent>(volumen);
     on<PlayerSetSpeedEvent>(velocidad);
-    setUp();  // Configura los listeners
+    setUp(); // Configura los listeners
   }
 
-  FutureOr<void> cargando(
-      PlayerLoadEvent event,
-      Emitter<PlayState> emit,
-      ) async {
+  FutureOr<void> cargando(PlayerLoadEvent event,
+      Emitter<PlayState> emit,) async {
     try {
       emit(LoadingState(currentIndex: event.index));
 
-      await audioPlayer.stop();
-      final String assetPath = canciones[event.index].assetPath;
+      await audioPlayer!.stop();
+      final String? assetPath = canciones![event.index].assetPath;
 
-        await audioPlayer.setSourceAsset(assetPath);
+      await audioPlayer!.setSourceAsset(assetPath!);
 
       Duration? duracionObtenida;
       if (!kIsWeb) {
         await Future.delayed(const Duration(milliseconds: 100));
 
-        duracionObtenida = await audioPlayer.getDuration();
+        duracionObtenida = await audioPlayer!.getDuration();
 
         if (duracionObtenida == null) {
           await Future.delayed(const Duration(milliseconds: 200));
-          duracionObtenida = await audioPlayer.getDuration();
+          duracionObtenida = await audioPlayer!.getDuration();
         }
       }
 
@@ -79,7 +82,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
   FutureOr<void> reproduciendo(PlayEvent event, Emitter<PlayState> emit) async {
     if (state is PlayingState) {
       try {
-        await audioPlayer.resume();
+        await audioPlayer!.resume();
         final PlayingState estadoActual = state as PlayingState;
         emit(estadoActual.copyWith(playing: true));
       } catch (e) {
@@ -92,7 +95,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
   FutureOr<void> pausando(PauseEvent event, Emitter<PlayState> emit) async {
     if (state is PlayingState) {
       try {
-        await audioPlayer.pause();
+        await audioPlayer!.pause();
         final PlayingState estadoActual = state as PlayingState;
         emit(estadoActual.copyWith(playing: false));
       } catch (e) {
@@ -105,13 +108,15 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
   FutureOr<void> siguiente(NextEvent event, Emitter<PlayState> emit) async {
     if (state is PlayingState) {
       final PlayingState estadoActual = state as PlayingState;
-      final int nextIndex = (estadoActual.currentIndex + 1) % canciones.length;
+      final int nextIndex = (estadoActual.currentIndex + 1) % canciones!.length;
 
-      emit(estadoActual.copyWith(
-        currentIndex: nextIndex,
-        playing: false,
-        position: Duration.zero,
-      ));
+      emit(
+        estadoActual.copyWith(
+          currentIndex: nextIndex,
+          playing: false,
+          position: Duration.zero,
+        ),
+      );
 
       add(PlayerLoadEvent(nextIndex));
     }
@@ -121,13 +126,16 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
     if (state is PlayingState) {
       final PlayingState estadoActual = state as PlayingState;
       final int previousIndex =
-          (estadoActual.currentIndex - 1 + canciones.length) % canciones.length;
+          (estadoActual.currentIndex - 1 + canciones!.length) %
+              canciones!.length;
 
-      emit(estadoActual.copyWith(
-        currentIndex: previousIndex,
-        playing: false,
-        position: Duration.zero,
-      ));
+      emit(
+        estadoActual.copyWith(
+          currentIndex: previousIndex,
+          playing: false,
+          position: Duration.zero,
+        ),
+      );
 
       add(PlayerLoadEvent(previousIndex));
     }
@@ -137,34 +145,32 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
     if (state is PlayingState) {
       final PlayingState estadoActual = state as PlayingState;
       emit(estadoActual.copyWith(position: event.position));
-      await audioPlayer.seek(event.position);
+      await audioPlayer!.seek(event.position);
     }
   }
 
   void setUp() {
-    position = audioPlayer.onPositionChanged.listen((newPosition) {
+    position = audioPlayer!.onPositionChanged.listen((newPosition) {
       if (state is PlayingState) {
         final PlayingState estadoActual = state as PlayingState;
         emit(estadoActual.copyWith(position: newPosition));
       }
     });
-    duration = audioPlayer.onDurationChanged.listen((newDuration) {
+    duration = audioPlayer!.onDurationChanged.listen((newDuration) {
       if (state is PlayingState) {
         final PlayingState estadoActual = state as PlayingState;
         emit(estadoActual.copyWith(duration: newDuration));
       }
     });
 
-    estado = audioPlayer.onPlayerStateChanged.listen((playerState) {
+    estado = audioPlayer!.onPlayerStateChanged.listen((playerState) {
       if (state is PlayingState) {
         final PlayingState estadoActual = state as PlayingState;
         if (playerState == PlayerState.playing && !estadoActual.playing) {
           emit(estadoActual.copyWith(playing: true));
-        }
-        else if (playerState == PlayerState.paused && estadoActual.playing) {
+        } else if (playerState == PlayerState.paused && estadoActual.playing) {
           emit(estadoActual.copyWith(playing: false));
-        }
-        else if (playerState == PlayerState.completed) {
+        } else if (playerState == PlayerState.completed) {
           emit(estadoActual.copyWith(playing: false, position: Duration.zero));
           add(NextEvent());
         }
@@ -177,29 +183,50 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
     estado?.cancel();
     position?.cancel();
     duration?.cancel();
-    audioPlayer.dispose();
+    audioPlayer?.dispose();
     return super.close();
   }
 
-  FutureOr<void> volumen(
-      PlayerSetVolumeEvent event,
-      Emitter<PlayState> emit,
-      ) async {
-    await audioPlayer.setVolume(event.volumen);
+  FutureOr<void> volumen(PlayerSetVolumeEvent event,
+      Emitter<PlayState> emit,) async {
+    await audioPlayer?.setVolume(event.volumen);
     if (state is PlayingState) {
       final currentState = state as PlayingState;
       emit(currentState.copyWith(volumen: event.volumen));
     }
   }
 
-  FutureOr<void> velocidad(
-      PlayerSetSpeedEvent event,
-      Emitter<PlayState> emit,
-      ) async {
-    await audioPlayer.setPlaybackRate(event.velocidad);
+  FutureOr<void> velocidad(PlayerSetSpeedEvent event,
+      Emitter<PlayState> emit,) async {
+    await audioPlayer?.setPlaybackRate(event.velocidad);
     if (state is PlayingState) {
       final currentState = state as PlayingState;
       emit(currentState.copyWith(velocidad: event.velocidad));
+    }
+  }
+
+  FutureOr<void> crearCanciones(CreateAudioItem event,
+      Emitter<PlayState> emit,) async {
+    try {
+      await dbhelper?.Create(event.audioItem!);
+      add(ReadAudioItem());
+    } catch (e) {
+      emit(ErrorState("Error: No se pudo agregar el estudiante"));
+      add(ReadAudioItem());
+    }
+  }
+
+  FutureOr<void> leerCanciones(ReadAudioItem event,
+      Emitter<PlayState> emit,) async {
+    final currentIndex = await state as PlayingState;
+    emit(LoadingState(currentIndex: currentIndex.currentIndex));
+    try {
+      final canciones = await dbhelper?.ReadAll(); // Request
+      emit(LoadedState(canciones: canciones));
+    } catch (e) {
+      emit(
+        ErrorState("Error: No se pudo conectar a la base de datos"),
+      );
     }
   }
 }

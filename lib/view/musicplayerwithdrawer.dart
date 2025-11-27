@@ -53,7 +53,7 @@ class MusicPlayerWithDrawerState extends State<MusicPlayerWithDrawer> {
           backgroundColor: Color(0xffffe082),
           drawerIconSize: 40,
           title: const Text(
-            'MelyJ - 🎧',
+            'MelyJ',
             style: TextStyle(
               fontSize: 24,
               fontFamily: "DMSerif",
@@ -71,7 +71,7 @@ class MusicPlayerWithDrawerState extends State<MusicPlayerWithDrawer> {
         ),
       ),
       slideDirection: SlideDirection.leftToRight,
-      sliderOpenSize: 280,
+      sliderOpenSize: 260,
       slider: _DrawerContent(
         canciones: widget.canciones,
         onSettingsTap: () {
@@ -261,7 +261,7 @@ class _AlbumArtCarousel extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(50),
-              child: Image.asset(canciones[index].imagePath, fit: BoxFit.cover),
+              child: Image.asset(canciones[index].imagePath!, fit: BoxFit.cover),
             ),
           ),
         ),
@@ -339,7 +339,7 @@ class _SongInfo extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            song.title,
+            song.title!,
             style: const TextStyle(
               color: Colors.black,
               fontSize: 16,
@@ -350,7 +350,7 @@ class _SongInfo extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            song.artist,
+            song.artist!,
             style: TextStyle(
               color: Colors.black.withOpacity(0.7),
               fontSize: 14,

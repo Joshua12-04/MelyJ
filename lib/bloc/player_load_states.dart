@@ -1,5 +1,6 @@
 
 import 'package:melyj/bloc/player_state.dart';
+import 'package:melyj/model/audio_item.dart';
 
 class InitialState extends PlayState {
   const InitialState();
@@ -8,6 +9,21 @@ class InitialState extends PlayState {
 class LoadingState extends PlayState {
   final int currentIndex;
   const LoadingState({required this.currentIndex});
+}
+
+final class LoadedState extends PlayState {
+  final List<AudioItem>? canciones;
+
+  LoadedState({this.canciones});
+
+  LoadedState copyWidth({List<AudioItem>? canciones}) {
+    return LoadedState(
+      canciones: canciones ?? this.canciones
+    );
+  }
+
+  @override
+  List<Object> get props => [canciones!];
 }
 
 class PlayingState extends PlayState {
@@ -50,12 +66,12 @@ class PlayingState extends PlayState {
 }
 
 class ErrorState extends PlayState {
-  final String msg;
+  final String? msg;
 
   const ErrorState(this.msg);
 
   @override
-  List<Object> get props => [msg];
+  List<Object> get props => [?msg];
 }
 
 class PlayPauseState extends PlayState {
