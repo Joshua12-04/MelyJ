@@ -26,70 +26,106 @@ class Swiper extends StatefulWidget {
 }
 
 class _SwiperState extends State<Swiper> {
-  bool _isManuallyChanging = false;
+  bool _isUserScrolling = false;
+  int? _lastBlocIndex;
 
   @override
   void initState() {
     super.initState();
-    widget.pageController.addListener(() {
-      if (widget.pageController.position.isScrollingNotifier.value) {
-        _isManuallyChanging = true;
-      }
-    });
+
+    // Inicializar con el índice actual del bloc
+    if (widget.bloc.state is PlayingState) {
+      _lastBlocIndex = (widget.bloc.state as PlayingState).currentIndex;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<PlayerBloc, PlayState>(
-      builder: (context, state) {
-        return Column(
-          children: [
-            SizedBox(
-              width: double.infinity,
-              height: MediaQuery.of(context).size.height * .35,
-              child: PageView.builder(
-                controller: widget.pageController,
-                itemCount: widget.audioList.length,
-                onPageChanged: (indice) {
-                  final actual = widget.bloc.state;
-                  if (_isManuallyChanging &&
-                      actual is PlayingState &&
-                      indice != actual.currentIndex) {
-                    widget.bloc.add(PlayerLoadEvent(indice));
-                  }
-                  _isManuallyChanging = false;
-                },
-                itemBuilder: (context, index) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(50),
-                    child: Image.asset(
-                      widget.audioList[index].imagePath!,
-                      fit: BoxFit.cover,
+    return BlocListener<PlayerBloc, PlayState>(
+      listener: (context, state) {
+        // Sincronizar el PageController cuando el bloc cambia
+        if (state is PlayingState && mounted && widget.pageController.hasClients) {
+          final newIndex = state.currentIndex;
+          final currentPage = widget.pageController.page?.round() ?? 0;
+
+          // Solo animar si el índice del bloc es diferente a la página actual
+          // y no estamos en medio de un scroll del usuario
+          if (currentPage != newIndex && !_isUserScrolling) {
+            widget.pageController.animateToPage(
+              newIndex,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeInOut,
+            );
+          }
+
+          _lastBlocIndex = newIndex;
+        }
+      },
+      child: BlocBuilder<PlayerBloc, PlayState>(
+        builder: (context, state) {
+          return Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                height: MediaQuery.of(context).size.height * .35,
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    if (notification is ScrollStartNotification) {
+                      setState(() {
+                        _isUserScrolling = true;
+                      });
+                    } else if (notification is ScrollEndNotification) {
+                      setState(() {
+                        _isUserScrolling = false;
+                      });
+                    }
+                    return false;
+                  },
+                  child: PageView.builder(
+                    controller: widget.pageController,
+                    itemCount: widget.audioList.length,
+                    onPageChanged: (indice) {
+                      // Solo procesar si fue el usuario quien cambió la página
+                      if (_isUserScrolling) {
+                        final actual = widget.bloc.state;
+                        if (actual is PlayingState && indice != actual.currentIndex) {
+                          widget.bloc.add(PlayerLoadEvent(indice));
+                        }
+                      }
+                    },
+                    itemBuilder: (context, index) => AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(50),
+                        child: Image.asset(
+                          widget.audioList[index].imagePath!,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 15),
-            SmoothPageIndicator(
-              controller: widget.pageController,
-              count: widget.audioList.length,
-              effect: SlideEffect(
-                spacing: 8,
-                radius: 10,
-                dotWidth: 17,
-                dotHeight: 17,
-                paintStyle: PaintingStyle.stroke,
-                strokeWidth: 1.5,
-                dotColor: const Color.fromRGBO(180, 140, 100, 100),
-                activeDotColor: widget.color,
+              const SizedBox(height: 15),
+              SmoothPageIndicator(
+                controller: widget.pageController,
+                count: widget.audioList.length,
+                effect: SlideEffect(
+                  spacing: 8,
+                  radius: 10,
+                  dotWidth: 17,
+                  dotHeight: 17,
+                  paintStyle: PaintingStyle.stroke,
+                  strokeWidth: 1.5,
+                  dotColor: const Color.fromRGBO(180, 140, 100, 100),
+                  activeDotColor: widget.color,
+                ),
               ),
-            ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 }

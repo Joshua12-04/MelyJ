@@ -96,7 +96,6 @@ class _DrawerContent extends StatefulWidget {
 
 class _DrawerContentState extends State<_DrawerContent> {
   late PageController _pageController;
-  bool _isManualChange = false;
 
   @override
   void initState() {
@@ -115,17 +114,15 @@ class _DrawerContentState extends State<_DrawerContent> {
   }
 
   void _onPageChanged(int index) {
-    _isManualChange = true;
+    // Este método será llamado SOLO cuando el usuario arrastre manualmente
+    // gracias al NotificationListener en _AlbumArtCarousel
     final bloc = context.read<PlayerBloc>();
     final currentState = bloc.state;
 
     if (currentState is PlayingState && index != currentState.currentIndex) {
+      print('🎵 DRAWER: Usuario cambió a índice $index');
       bloc.add(PlayerLoadEvent(index));
     }
-
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) _isManualChange = false;
-    });
   }
 
   @override
@@ -136,16 +133,13 @@ class _DrawerContentState extends State<_DrawerContent> {
         child: Column(
           children: [
             _DrawerHeader(),
-            // Divider eliminado o con altura 0
-            const SizedBox(height: 0), // Reemplaza el Divider
+            const SizedBox(height: 0),
             _SettingsButton(onTap: widget.onSettingsTap),
-            _DeleteDatabaseButton(),
             const Spacer(),
             _AlbumArtCarousel(
               canciones: widget.canciones,
               pageController: _pageController,
               onPageChanged: _onPageChanged,
-              isManualChange: _isManualChange,
             ),
             _PlaybackControls(canciones: widget.canciones),
           ],
@@ -170,7 +164,6 @@ class _DrawerHeader extends StatelessWidget {
             const Color(0xFFE4EFB3),
           ],
         ),
-        // Eliminar cualquier borde inferior si existe
         border: null,
       ),
       child: Padding(
@@ -228,137 +221,72 @@ class _SettingsButton extends StatelessWidget {
   }
 }
 
-class _DeleteDatabaseButton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: const Icon(Icons.delete_forever, color: Color(0xFFD32F2F), size: 24),
-      title: const Text(
-        'Borrar todas las canciones',
-        style: TextStyle(
-          color: Color(0xFFD32F2F),
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      onTap: () => _showDeleteConfirmation(context),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-    );
-  }
-
-  void _showDeleteConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFFFFF9E6),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Color(0xFFD32F2F), size: 28),
-            SizedBox(width: 10),
-            Text(
-              '¿Confirmar?',
-              style: TextStyle(
-                fontFamily: "DMSerif",
-                color: Colors.black,
-              ),
-            ),
-          ],
-        ),
-        content: const Text(
-          '¿Estás seguro de que quieres borrar todas las canciones de la base de datos? Esta acción no se puede deshacer.',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.black87,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(
-                color: Colors.black54,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              context.read<PlayerBloc>().add(DeleteAllAudioItems());
-              Navigator.pop(dialogContext);
-
-              // Mostrar mensaje de confirmación
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Todas las canciones han sido eliminadas'),
-                  backgroundColor: Color(0xFFD32F2F),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD32F2F),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text(
-              'Borrar todo',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AlbumArtCarousel extends StatelessWidget {
+class _AlbumArtCarousel extends StatefulWidget {
   final List<AudioItem> canciones;
   final PageController pageController;
   final Function(int) onPageChanged;
-  final bool isManualChange;
 
   const _AlbumArtCarousel({
     required this.canciones,
     required this.pageController,
     required this.onPageChanged,
-    required this.isManualChange,
   });
+
+  @override
+  State<_AlbumArtCarousel> createState() => _AlbumArtCarouselState();
+}
+
+class _AlbumArtCarouselState extends State<_AlbumArtCarousel> {
+  bool _isUserScrolling = false;
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<PlayerBloc, PlayState>(
       listener: (context, state) {
         if (state is PlayingState &&
-            !isManualChange &&
-            pageController.hasClients) {
-          pageController.animateToPage(
-            state.currentIndex,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-          );
+            !_isUserScrolling &&
+            widget.pageController.hasClients) {
+          final currentPage = widget.pageController.page?.round() ?? 0;
+          if (currentPage != state.currentIndex) {
+            print('🎵 DRAWER: Sincronizando a índice ${state.currentIndex}');
+            widget.pageController.animateToPage(
+              state.currentIndex,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
+          }
         }
       },
       child: SizedBox(
         height: 200,
-        child: PageView.builder(
-          controller: pageController,
-          itemCount: canciones.length,
-          onPageChanged: onPageChanged,
-          itemBuilder: (context, index) => Container(
-            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(50),
-              child: Image.asset(canciones[index].imagePath!, fit: BoxFit.cover),
+        child: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (notification is ScrollStartNotification) {
+              setState(() {
+                _isUserScrolling = true;
+              });
+            } else if (notification is ScrollEndNotification) {
+              setState(() {
+                _isUserScrolling = false;
+              });
+            }
+            return false;
+          },
+          child: PageView.builder(
+            controller: widget.pageController,
+            itemCount: widget.canciones.length,
+            onPageChanged: (index) {
+              // Solo llamar al callback si fue scroll del usuario
+              if (_isUserScrolling) {
+                widget.onPageChanged(index);
+              }
+            },
+            itemBuilder: (context, index) => Container(
+              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(50),
+                child: Image.asset(widget.canciones[index].imagePath!, fit: BoxFit.cover),
+              ),
             ),
           ),
         ),
@@ -475,7 +403,10 @@ class _ControlButtons extends StatelessWidget {
       children: [
         _ControlButton(
           icon: Icons.skip_previous,
-          onPressed: () => bloc.add(PrevEvent()),
+          onPressed: () {
+            print('🎵 BOTÓN: Previous presionado');
+            bloc.add(PrevEvent());
+          },
         ),
         _ControlButton(
           icon: isPlaying ? Icons.pause : Icons.play_arrow,
@@ -484,7 +415,10 @@ class _ControlButtons extends StatelessWidget {
         ),
         _ControlButton(
           icon: Icons.skip_next,
-          onPressed: () => bloc.add(NextEvent()),
+          onPressed: () {
+            print('🎵 BOTÓN: Next presionado');
+            bloc.add(NextEvent());
+          },
         ),
       ],
     );

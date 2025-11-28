@@ -59,7 +59,6 @@ class _PlayerWrapperState extends State<PlayerWrapper> {
     // Si la base de datos está vacía, insertar canciones predeterminadas
     if (canciones.isEmpty) {
       final cancionesIniciales = [
-
         AudioItem(
           assetPath: "music/como_lo_mueve.mp3",
           title: "Como lo mueve Low",
@@ -68,7 +67,7 @@ class _PlayerWrapperState extends State<PlayerWrapper> {
         ),
         AudioItem(
           assetPath: "music/arctic_monkeys.mp3",
-          title: "Why’d you only call me when you’re high",
+          title: "Why'd you only call me when you're high",
           artist: "Arctic Monkeys",
           imagePath: "assets/images/arctic_monkeys.jpg",
         ),
@@ -106,7 +105,7 @@ class _PlayerWrapperState extends State<PlayerWrapper> {
           assetPath: "music/maroon5.mp3",
           title: "This Love",
           artist: "MAROON 5",
-          imagePath: "assets/images/maroon5",
+          imagePath: "assets/images/maroon5.jpg",
         ),
       ];
 
@@ -114,6 +113,9 @@ class _PlayerWrapperState extends State<PlayerWrapper> {
       for (var cancion in cancionesIniciales) {
         await db.Create(cancion);
       }
+
+      // Debug: Verificar que se insertaron correctamente
+      final verificacion = await db.ReadAll();
     }
   }
 
@@ -150,29 +152,24 @@ class Player extends StatefulWidget {
 class _PlayerState extends State<Player> {
   static const _wormColor = Color(0xffffe082);
   late PageController pageController;
-  StreamSubscription? blocSubscription;
+  bool _hasLoadedInitialSong = false; // Nueva variable
 
   @override
   void initState() {
     super.initState();
-    pageController = PageController(viewportFraction: .8);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final bloc = context.read<PlayerBloc>();
+    // Inicializar con el índice actual del bloc
+    final bloc = context.read<PlayerBloc>();
+    final initialIndex = bloc.state is PlayingState
+        ? (bloc.state as PlayingState).currentIndex
+        : 0;
 
-      blocSubscription = bloc.stream.listen((state) {
-        if (state is PlayingState && mounted && pageController.hasClients) {
-          final currentPage = pageController.page?.round() ?? 0;
-          if (currentPage != state.currentIndex) {
-            pageController.animateToPage(
-              state.currentIndex,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeInOut,
-            );
-          }
-        }
-      });
-    });
+    pageController = PageController(
+      viewportFraction: .8,
+      initialPage: initialIndex,
+    );
+
+    // No necesitamos listener aquí, el Swiper maneja su propia sincronización
   }
 
   @override
@@ -181,28 +178,37 @@ class _PlayerState extends State<Player> {
 
     return BlocBuilder<PlayerBloc, PlayState>(
       builder: (context, state) {
-        // Mostrar loading mientras se cargan las canciones
-        if (state is LoadingState && state is! PlayingState) {
+
+        // Obtener las canciones del estado
+        List<AudioItem> canciones = [];
+        bool showLoading = false;
+
+        if (state is LoadedState) {
+          canciones = state.canciones ?? [];
+          // Cargar la primera canción automáticamente SOLO UNA VEZ
+          if (canciones.isNotEmpty && !_hasLoadedInitialSong) {
+            _hasLoadedInitialSong = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              bloc.add(PlayerLoadEvent(0));
+            });
+          }
+        } else if (state is LoadingState) {
+          // Cuando está cargando, mostrar loading pero mantener las canciones del bloc
+          canciones = bloc.canciones ?? [];
+          showLoading = canciones.isEmpty;
+        } else if (state is PlayingState) {
+          // Si ya estamos en PlayingState, obtener canciones del bloc
+          canciones = bloc.canciones ?? [];
+        } else if (state is InitialState) {
+          showLoading = true;
+        }
+
+        if (showLoading) {
           return const Scaffold(
             body: Center(
               child: CircularProgressIndicator(),
             ),
           );
-        }
-
-        // Obtener las canciones del estado LoadedState
-        List<AudioItem> canciones = [];
-        if (state is LoadedState) {
-          canciones = state.canciones ?? [];
-          // Cargar la primera canción automáticamente
-          if (canciones.isNotEmpty) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              bloc.add(PlayerLoadEvent(0));
-            });
-          }
-        } else if (state is PlayingState) {
-          // Si ya estamos en PlayingState, obtener canciones del bloc
-          canciones = bloc.canciones ?? [];
         }
 
         if (canciones.isEmpty) {
@@ -249,7 +255,6 @@ class _PlayerState extends State<Player> {
 
   @override
   void dispose() {
-    blocSubscription?.cancel();
     pageController.dispose();
     super.dispose();
   }
