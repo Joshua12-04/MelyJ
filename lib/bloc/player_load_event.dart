@@ -1,5 +1,3 @@
-
-
 import 'package:melyj/bloc/player_event.dart';
 import 'package:melyj/model/audio_item.dart';
 
@@ -12,24 +10,15 @@ class PlayerLoadEvent extends PlayerEvent {
   List<Object> get props => [index];
 }
 
-class PlayEvent extends PlayerEvent {
+class PlayEvent extends PlayerEvent {}
 
-}
+class PauseEvent extends PlayerEvent {}
 
+class NextEvent extends PlayerEvent {}
 
-class PauseEvent extends PlayerEvent {
+class PrevEvent extends PlayerEvent {}
 
-}
-
-class NextEvent extends PlayerEvent {
-
-}
-
-class PrevEvent extends PlayerEvent {
-
-}
-
-class SeekEvent extends PlayerEvent{
+class SeekEvent extends PlayerEvent {
   final Duration position;
   const SeekEvent(this.position);
   @override
@@ -60,4 +49,27 @@ class CreateAudioItem extends PlayerEvent {
 class ReadAudioItem extends PlayerEvent {
   @override
   List<Object> get props => [];
+}
+
+class DeleteAudioItem extends PlayerEvent {
+  final int id;
+
+  const DeleteAudioItem(this.id);
+
+  @override
+  List<Object> get props => [id];
+}
+
+class DeleteAllAudioItems extends PlayerEvent {
+  @override
+  List<Object> get props => [];
+}
+
+class UpdateAudioItem extends PlayerEvent {
+  final AudioItem audioItem;
+
+  const UpdateAudioItem(this.audioItem);
+
+  @override
+  List<Object> get props => [audioItem];
 }

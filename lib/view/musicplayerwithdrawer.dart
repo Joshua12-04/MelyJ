@@ -25,7 +25,7 @@ class MusicPlayerWithDrawer extends StatefulWidget {
 
 class MusicPlayerWithDrawerState extends State<MusicPlayerWithDrawer> {
   final GlobalKey<SliderDrawerState> _sliderDrawerKey =
-      GlobalKey<SliderDrawerState>();
+  GlobalKey<SliderDrawerState>();
 
   void openDrawer() {
     _sliderDrawerKey.currentState?.openSlider();
@@ -136,8 +136,10 @@ class _DrawerContentState extends State<_DrawerContent> {
         child: Column(
           children: [
             _DrawerHeader(),
-            const Divider(height: 1, thickness: 1),
+            // Divider eliminado o con altura 0
+            const SizedBox(height: 0), // Reemplaza el Divider
             _SettingsButton(onTap: widget.onSettingsTap),
+            _DeleteDatabaseButton(),
             const Spacer(),
             _AlbumArtCarousel(
               canciones: widget.canciones,
@@ -168,6 +170,8 @@ class _DrawerHeader extends StatelessWidget {
             const Color(0xFFE4EFB3),
           ],
         ),
+        // Eliminar cualquier borde inferior si existe
+        border: null,
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -220,6 +224,99 @@ class _SettingsButton extends StatelessWidget {
       ),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+    );
+  }
+}
+
+class _DeleteDatabaseButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.delete_forever, color: Color(0xFFD32F2F), size: 24),
+      title: const Text(
+        'Borrar todas las canciones',
+        style: TextStyle(
+          color: Color(0xFFD32F2F),
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      onTap: () => _showDeleteConfirmation(context),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFFFFF9E6),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFD32F2F), size: 28),
+            SizedBox(width: 10),
+            Text(
+              '¿Confirmar?',
+              style: TextStyle(
+                fontFamily: "DMSerif",
+                color: Colors.black,
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          '¿Estás seguro de que quieres borrar todas las canciones de la base de datos? Esta acción no se puede deshacer.',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.black87,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(
+                color: Colors.black54,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              context.read<PlayerBloc>().add(DeleteAllAudioItems());
+              Navigator.pop(dialogContext);
+
+              // Mostrar mensaje de confirmación
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Todas las canciones han sido eliminadas'),
+                  backgroundColor: Color(0xFFD32F2F),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD32F2F),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text(
+              'Borrar todo',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -416,8 +513,8 @@ class _ControlButton extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isPrimary
-              ? const Color(0xff000000).withOpacity(0.2)
-              : Colors.black.withOpacity(0.6),
+              ? const Color(0xfff6f6f6).withOpacity(0.2)
+              : Colors.white.withOpacity(0.6),
           border: Border.all(
             color: isPrimary
                 ? const Color(0xff000000).withOpacity(0.6)

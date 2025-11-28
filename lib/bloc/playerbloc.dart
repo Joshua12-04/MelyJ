@@ -11,15 +11,18 @@ import '../model/databasehelper.dart';
 
 class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
   final AudioPlayer? audioPlayer;
-  final List<AudioItem>? canciones;
+  List<AudioItem>? canciones;
   StreamSubscription? position, duration, estado;
   final DatabaseHelper? dbhelper;
 
   PlayerBloc({this.dbhelper, this.audioPlayer, this.canciones})
-      : super(InitialState()) {
+      : super(const InitialState()) {
     // Registrar y manipular la base de datos
     on<CreateAudioItem>(crearCanciones);
     on<ReadAudioItem>(leerCanciones);
+    on<DeleteAudioItem>(eliminarCancion);
+    on<DeleteAllAudioItems>(eliminarTodasCanciones);
+    on<UpdateAudioItem>(actualizarCancion);
     // Registrar todos los manejadores de eventos
     on<PlayerLoadEvent>(cargando);
     on<PlayEvent>(reproduciendo);
@@ -32,9 +35,17 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
     setUp(); // Configura los listeners
   }
 
-  FutureOr<void> cargando(PlayerLoadEvent event,
-      Emitter<PlayState> emit,) async {
+  FutureOr<void> cargando(
+      PlayerLoadEvent event,
+      Emitter<PlayState> emit,
+      ) async {
     try {
+      // Asegurarse de que las canciones estén cargadas
+      if (canciones == null || canciones!.isEmpty) {
+        emit(const ErrorState("No hay canciones disponibles"));
+        return;
+      }
+
       emit(LoadingState(currentIndex: event.index));
 
       await audioPlayer!.stop();
@@ -74,7 +85,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
       );
       add(PlayEvent());
     } catch (e) {
-      emit(ErrorState("Error: no se pudo cargar el archivo"));
+      emit(const ErrorState("Error: no se pudo cargar el archivo"));
       debugPrint(e.toString());
     }
   }
@@ -86,7 +97,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
         final PlayingState estadoActual = state as PlayingState;
         emit(estadoActual.copyWith(playing: true));
       } catch (e) {
-        emit(ErrorState("Error: no se pudo reproducir el archivo"));
+        emit(const ErrorState("Error: no se pudo reproducir el archivo"));
         debugPrint(e.toString());
       }
     }
@@ -99,14 +110,14 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
         final PlayingState estadoActual = state as PlayingState;
         emit(estadoActual.copyWith(playing: false));
       } catch (e) {
-        emit(ErrorState("Error: no se pudo pausar el archivo"));
+        emit(const ErrorState("Error: no se pudo pausar el archivo"));
         debugPrint(e.toString());
       }
     }
   }
 
   FutureOr<void> siguiente(NextEvent event, Emitter<PlayState> emit) async {
-    if (state is PlayingState) {
+    if (state is PlayingState && canciones != null) {
       final PlayingState estadoActual = state as PlayingState;
       final int nextIndex = (estadoActual.currentIndex + 1) % canciones!.length;
 
@@ -123,7 +134,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
   }
 
   FutureOr<void> anterior(PrevEvent event, Emitter<PlayState> emit) async {
-    if (state is PlayingState) {
+    if (state is PlayingState && canciones != null) {
       final PlayingState estadoActual = state as PlayingState;
       final int previousIndex =
           (estadoActual.currentIndex - 1 + canciones!.length) %
@@ -187,8 +198,10 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
     return super.close();
   }
 
-  FutureOr<void> volumen(PlayerSetVolumeEvent event,
-      Emitter<PlayState> emit,) async {
+  FutureOr<void> volumen(
+      PlayerSetVolumeEvent event,
+      Emitter<PlayState> emit,
+      ) async {
     await audioPlayer?.setVolume(event.volumen);
     if (state is PlayingState) {
       final currentState = state as PlayingState;
@@ -196,8 +209,10 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
     }
   }
 
-  FutureOr<void> velocidad(PlayerSetSpeedEvent event,
-      Emitter<PlayState> emit,) async {
+  FutureOr<void> velocidad(
+      PlayerSetSpeedEvent event,
+      Emitter<PlayState> emit,
+      ) async {
     await audioPlayer?.setPlaybackRate(event.velocidad);
     if (state is PlayingState) {
       final currentState = state as PlayingState;
@@ -205,28 +220,87 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayState> {
     }
   }
 
-  FutureOr<void> crearCanciones(CreateAudioItem event,
-      Emitter<PlayState> emit,) async {
+  FutureOr<void> crearCanciones(
+      CreateAudioItem event,
+      Emitter<PlayState> emit,
+      ) async {
     try {
       await dbhelper?.Create(event.audioItem!);
       add(ReadAudioItem());
     } catch (e) {
-      emit(ErrorState("Error: No se pudo agregar el estudiante"));
+      emit(const ErrorState("Error: No se pudo agregar la canción"));
       add(ReadAudioItem());
     }
   }
 
-  FutureOr<void> leerCanciones(ReadAudioItem event,
-      Emitter<PlayState> emit,) async {
-    final currentIndex = await state as PlayingState;
-    emit(LoadingState(currentIndex: currentIndex.currentIndex));
+  FutureOr<void> leerCanciones(
+      ReadAudioItem event,
+      Emitter<PlayState> emit,
+      ) async {
     try {
-      final canciones = await dbhelper?.ReadAll(); // Request
+      // Mantener el índice actual si existe
+      int currentIndex = 0;
+      if (state is PlayingState) {
+        currentIndex = (state as PlayingState).currentIndex;
+      }
+
+      emit(LoadingState(currentIndex: currentIndex));
+
+      // Leer canciones de la base de datos
+      canciones = await dbhelper?.ReadAll();
+
+      if (canciones == null || canciones!.isEmpty) {
+        emit(const ErrorState("No hay canciones en la base de datos"));
+        return;
+      }
+
       emit(LoadedState(canciones: canciones));
     } catch (e) {
-      emit(
-        ErrorState("Error: No se pudo conectar a la base de datos"),
-      );
+      emit(const ErrorState("Error: No se pudo conectar a la base de datos"));
+      debugPrint(e.toString());
+    }
+  }
+
+  FutureOr<void> eliminarCancion(
+      DeleteAudioItem event,
+      Emitter<PlayState> emit,
+      ) async {
+    try {
+      await dbhelper?.Delete(event.id);
+      add(ReadAudioItem());
+    } catch (e) {
+      emit(const ErrorState("Error: No se pudo eliminar la canción"));
+      debugPrint(e.toString());
+      add(ReadAudioItem());
+    }
+  }
+
+  FutureOr<void> eliminarTodasCanciones(
+      DeleteAllAudioItems event,
+      Emitter<PlayState> emit,
+      ) async {
+    try {
+      await audioPlayer?.stop();
+      await dbhelper?.DeleteAll();
+      canciones = [];
+      emit(const InitialState());
+    } catch (e) {
+      emit(const ErrorState("Error: No se pudieron eliminar las canciones"));
+      debugPrint(e.toString());
+    }
+  }
+
+  FutureOr<void> actualizarCancion(
+      UpdateAudioItem event,
+      Emitter<PlayState> emit,
+      ) async {
+    try {
+      await dbhelper?.Update(event.audioItem);
+      add(ReadAudioItem());
+    } catch (e) {
+      emit(const ErrorState("Error: No se pudo actualizar la canción"));
+      debugPrint(e.toString());
+      add(ReadAudioItem());
     }
   }
 }

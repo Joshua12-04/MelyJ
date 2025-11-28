@@ -68,7 +68,7 @@ class _AudioSettingsState extends State<AudioSettings> {
                         value: volumenActual,
                         min: 0.0,
                         max: 1.0,
-                        activeColor: Colors.red,
+                        activeColor: const Color.fromARGB(255, 255, 252, 0),
                         inactiveColor: Colors.white38,
                         onChanged: (value) {
                           setState(() => volumenActual = value);
@@ -110,7 +110,7 @@ class _AudioSettingsState extends State<AudioSettings> {
                   padding: const EdgeInsets.all(16),
                   margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 180, 140, 100),
+                    color: const Color.fromARGB(255, 255, 252, 0),
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: const [
                       BoxShadow(

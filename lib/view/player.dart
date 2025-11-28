@@ -6,8 +6,10 @@ import 'package:melyj/view/swiper.dart';
 import 'dart:async';
 import '../bloc/player_load_event.dart';
 import '../bloc/player_load_states.dart';
+import '../bloc/player_state.dart';
 import '../bloc/playerbloc.dart';
 import '../model/audio_item.dart';
+import '../model/databasehelper.dart';
 import 'audiosetting.dart';
 import 'buttonpractice.dart';
 import 'infosong.dart';
@@ -24,72 +26,110 @@ class PlayerWrapper extends StatefulWidget {
 
 class _PlayerWrapperState extends State<PlayerWrapper> {
   late final PlayerBloc bloc;
-  late final List<AudioItem> canciones;
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _initializePlayer();
+  }
 
-    canciones = [
-      AudioItem(
-        assetPath: "music/love.mp3",
-        title: "Love",
-        artist: "Pelon",
-        imagePath: "assets/images/love_colored.jpg", // ✅ Ya está bien
-      ),
-      AudioItem(
-        assetPath: "music/misoledad.mp3",
-        title: "Mi Soledad",
-        artist: "Los plebes del rancho de Ariel camacho",
-        imagePath: "assets/images/plebes.jpg", // ✅ Agregado "assets/"
-      ),
-      AudioItem(
-        assetPath: "music/thejazzpiano.mp3",
-        title: "Jazz Piano",
-        artist: "Limon",
-        imagePath: "assets/images/thejazzpiano_colored.jpg", // ✅ Agregado "assets/"
-      ),
-      AudioItem(
-        assetPath: "music/tutu.mp3",
-        title: "TUTU",
-        artist: "Camilo",
-        imagePath: "assets/images/camilo.jpg", // ✅ Agregado "assets/"
-      ),
-      AudioItem(
-        assetPath: "music/atravezdelvaso.mp3",
-        title: "A Travez del Vaso",
-        artist: "Carin Leon",
-        imagePath: "assets/images/carin.jpg", // ✅ Agregado "assets/"
-      ),
-      AudioItem(
-        assetPath: "music/porquetequiero.mp3",
-        title: "Porque Te Quiero",
-        artist: "Grupo Firme",
-        imagePath: "assets/images/grupofirme.jpg", // ✅ Agregado "assets/"
-      ),
-      AudioItem(
-        assetPath: "music/allthat.mp3",
-        title: "All that",
-        artist: "Joshua",
-        imagePath: "assets/images/allthat_colored.jpg", // ✅ Agregado "assets/"
-      ),
-      AudioItem(
-        assetPath: "music/indecision.mp3",
-        title: "Indecision",
-        artist: "La Arrolladora Banda Limon",
-        imagePath: "assets/images/arrolladora.jpg", // ✅ Agregado "assets/"
-      ),
-    ];
+  Future<void> _initializePlayer() async {
+    // Inicializar la base de datos con canciones si está vacía
+    await _initializeDatabase();
 
-    bloc = PlayerBloc(audioPlayer: widget.audioPlayer, canciones: canciones);
-    bloc.add(PlayerLoadEvent(0));
+    // Crear el bloc con la base de datos
+    bloc = PlayerBloc(
+      audioPlayer: widget.audioPlayer,
+      dbhelper: DatabaseHelper.instance,
+    );
+
+    // Cargar las canciones desde la base de datos
+    bloc.add(ReadAudioItem());
+
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  Future<void> _initializeDatabase() async {
+    final db = DatabaseHelper.instance;
+    final canciones = await db.ReadAll();
+
+    // Si la base de datos está vacía, insertar canciones predeterminadas
+    if (canciones.isEmpty) {
+      final cancionesIniciales = [
+
+        AudioItem(
+          assetPath: "music/como_lo_mueve.mp3",
+          title: "Como lo mueve Low",
+          artist: "El Joshua",
+          imagePath: "assets/images/pocoyo.png",
+        ),
+        AudioItem(
+          assetPath: "music/arctic_monkeys.mp3",
+          title: "Why’d you only call me when you’re high",
+          artist: "Arctic Monkeys",
+          imagePath: "assets/images/arctic_monkeys.jpg",
+        ),
+        AudioItem(
+          assetPath: "music/back_to_black.mp3",
+          title: "Back To Black",
+          artist: "Amy Winehouse",
+          imagePath: "assets/images/back_to_black.jpg",
+        ),
+        AudioItem(
+          assetPath: "music/Calidad.mp3",
+          title: "Calidad",
+          artist: "Luis Mexia",
+          imagePath: "assets/images/calidad.jpg",
+        ),
+        AudioItem(
+          assetPath: "music/coqueta.mp3",
+          title: "Coqueta",
+          artist: "Fuerza Regida",
+          imagePath: "assets/images/coqueta.jpg",
+        ),
+        AudioItem(
+          assetPath: "music/lavidaesunriesgo.mp3",
+          title: "La vida es un reisgo",
+          artist: "El Abelito",
+          imagePath: "assets/images/la_vida_es_un_riesgo.jpg",
+        ),
+        AudioItem(
+          assetPath: "music/lay_all_your_love_on_me.mp3",
+          title: "Lay all your love on me",
+          artist: "ABBA",
+          imagePath: "assets/images/adba.jpg",
+        ),
+        AudioItem(
+          assetPath: "music/maroon5.mp3",
+          title: "This Love",
+          artist: "MAROON 5",
+          imagePath: "assets/images/maroon5",
+        ),
+      ];
+
+      // Insertar cada canción en la base de datos
+      for (var cancion in cancionesIniciales) {
+        await db.Create(cancion);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return BlocProvider<PlayerBloc>(
       create: (_) => bloc,
-      child: Player(canciones: canciones),
+      child: const Player(),
     );
   }
 
@@ -101,16 +141,14 @@ class _PlayerWrapperState extends State<PlayerWrapper> {
 }
 
 class Player extends StatefulWidget {
-  final List<AudioItem> canciones;
-
-  const Player({Key? key, required this.canciones}) : super(key: key);
+  const Player({Key? key}) : super(key: key);
 
   @override
   _PlayerState createState() => _PlayerState();
 }
 
 class _PlayerState extends State<Player> {
-  static const _wormColor = Color(0xffff0000);
+  static const _wormColor = Color(0xffffe082);
   late PageController pageController;
   StreamSubscription? blocSubscription;
 
@@ -141,25 +179,61 @@ class _PlayerState extends State<Player> {
   Widget build(BuildContext context) {
     final bloc = context.read<PlayerBloc>();
 
-    return MusicPlayerWithDrawer(
-      canciones: widget.canciones,
-      onSettingsTap: () => _showSettings(context, bloc),
-      mainScreen: _buildMainContent(bloc),
+    return BlocBuilder<PlayerBloc, PlayState>(
+      builder: (context, state) {
+        // Mostrar loading mientras se cargan las canciones
+        if (state is LoadingState && state is! PlayingState) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        // Obtener las canciones del estado LoadedState
+        List<AudioItem> canciones = [];
+        if (state is LoadedState) {
+          canciones = state.canciones ?? [];
+          // Cargar la primera canción automáticamente
+          if (canciones.isNotEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              bloc.add(PlayerLoadEvent(0));
+            });
+          }
+        } else if (state is PlayingState) {
+          // Si ya estamos en PlayingState, obtener canciones del bloc
+          canciones = bloc.canciones ?? [];
+        }
+
+        if (canciones.isEmpty) {
+          return const Scaffold(
+            body: Center(
+              child: Text('No hay canciones disponibles'),
+            ),
+          );
+        }
+
+        return MusicPlayerWithDrawer(
+          canciones: canciones,
+          onSettingsTap: () => _showSettings(context, bloc),
+          mainScreen: _buildMainContent(bloc, canciones),
+        );
+      },
     );
   }
 
-  Widget _buildMainContent(PlayerBloc bloc) {
+  Widget _buildMainContent(PlayerBloc bloc, List<AudioItem> canciones) {
     return Material(
       child: SafeArea(
         child: Column(
           children: [
             Swiper(
               pageController: pageController,
-              audioList: widget.canciones,
+              audioList: canciones,
               color: _wormColor,
               bloc: bloc,
             ),
-            Informationsongs(audiolis: widget.canciones, bloc: bloc),
+            Informationsongs(audiolis: canciones, bloc: bloc),
             Progresslider(color: _wormColor, bloc: bloc),
             Expanded(
               child: Padding(
@@ -191,7 +265,7 @@ class _PlayerState extends State<Player> {
           child: Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Material(
-              color: const Color(0xfff3d4ba),
+              color: const Color(0xffffe082),
               borderRadius: BorderRadius.circular(20),
               child: SizedBox(
                 width: MediaQuery.of(context).size.width * 0.95,

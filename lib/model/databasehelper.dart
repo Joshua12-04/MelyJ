@@ -46,7 +46,7 @@ class DatabaseHelper {
   FutureOr<void> onCreate(Database db, int version) async {
     return await db.execute("""
     create table songs (
-    id integer primary key not null unique,
+    id integer primary key autoincrement,
     assetPath varchar(50) not null,
     title varchar(40) not null,
     artist varchar(40) not null,
@@ -61,21 +61,63 @@ class DatabaseHelper {
     int newId = await db.insert('songs', audioitem.toMap());
     final result = await db.query(
       'songs',
-      where: 'rowid = ?',
+      where: 'id = ?',
       whereArgs: [newId],
       limit: 1,
     );
     return AudioItem.fromMap(result.first);
-
   }
 
   Future<List<AudioItem>> ReadAll() async {
     final db = await instance.getDataBase();
-    final data = await db.query('songs');
+    final data = await db.query('songs', orderBy: 'id ASC');
     return data.map((map) => AudioItem.fromMap(map)).toList();
   }
 
-  void Close() async{
+  // Eliminar una canción específica por ID
+  Future<int> Delete(int id) async {
+    final db = await instance.getDataBase();
+    return await db.delete(
+      'songs',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // Eliminar todas las canciones
+  Future<int> DeleteAll() async {
+    final db = await instance.getDataBase();
+    return await db.delete('songs');
+  }
+
+  // Actualizar una canción
+  Future<int> Update(AudioItem audioitem) async {
+    final db = await instance.getDataBase();
+    return await db.update(
+      'songs',
+      audioitem.toMap(),
+      where: 'id = ?',
+      whereArgs: [audioitem.id],
+    );
+  }
+
+  // Obtener una canción por ID
+  Future<AudioItem?> ReadById(int id) async {
+    final db = await instance.getDataBase();
+    final result = await db.query(
+      'songs',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+
+    if (result.isNotEmpty) {
+      return AudioItem.fromMap(result.first);
+    }
+    return null;
+  }
+
+  void Close() async {
     final db = await instance.getDataBase();
     db.close();
   }

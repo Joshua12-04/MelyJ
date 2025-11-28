@@ -62,7 +62,7 @@ class Buttonpractice extends StatelessWidget {
                             padding: const EdgeInsets.all(4),
                             constraints: const BoxConstraints(),
                             onPressed: () => bloc.add(PrevEvent()),
-                            icon: const Icon(Icons.skip_previous_rounded, color: Colors.white),
+                            icon: const Icon(Icons.skip_previous_rounded, color: Colors.black),
                           ),
                           const SizedBox(width: 8),
                           Container(
@@ -74,7 +74,7 @@ class Buttonpractice extends StatelessWidget {
                               onPressed: () => bloc.add(playing ? PauseEvent() : PlayEvent()),
                               icon: Icon(
                                 playing ? Icons.pause : Icons.play_arrow_rounded,
-                                color: Colors.white,
+                                color: Colors.black,
                               ),
                             ),
                           ),
@@ -84,7 +84,7 @@ class Buttonpractice extends StatelessWidget {
                             padding: const EdgeInsets.all(4),
                             constraints: const BoxConstraints(),
                             onPressed: () => bloc.add(NextEvent()),
-                            icon: const Icon(Icons.skip_next_rounded, color: Colors.white),
+                            icon: const Icon(Icons.skip_next_rounded, color: Colors.black),
                           ),
                         ],
                       ),
